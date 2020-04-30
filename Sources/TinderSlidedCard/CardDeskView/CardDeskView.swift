@@ -44,13 +44,19 @@ extension CardDeskView {
     guard let dataSource = dataSource else {
       fatalError("🚨 You have to set CardDeskView's dataSource")
     }
-    
+    cardViews.removeAll()
     dataSource.cardDeskViewAllCardViewModels(self).forEach {
       let cardView = CardView(cardViewModel: $0)
       cardViews.append(cardView)
-      addSubview(cardView)
-      cardView.fillSuperView()
       cardView.delegate = self
+    }
+    setupCardViewsLayout()
+  }
+  
+  fileprivate func setupCardViewsLayout() {
+    cardViews.forEach{
+      addSubview($0)
+      $0.fillSuperView()
     }
   }
   
