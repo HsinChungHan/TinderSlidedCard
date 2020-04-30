@@ -8,6 +8,11 @@
 
 import UIKit
 
+enum TapAction {
+  case moveForward
+  case backToLast
+}
+
 public protocol CardDeskViewDataSource: AnyObject {
   func cardDeskViewAllCardViewModels(_ cardDeskView: CardDeskView) -> [CardViewModel]
   func cardDeskViewLikeIcon(_ cardDeskView: CardDeskView) -> UIImage
@@ -54,6 +59,20 @@ extension CardDeskView {
       $0.setupDetailButton()
     }
   }
+  
+  fileprivate func performVibrateAnimation(tapAction: TapAction) {
+    let angle: CGFloat = (tapAction == .moveForward) ? 0.4 : -0.4
+    let anim = CABasicAnimation(keyPath: "transform")
+    anim.fromValue = CATransform3DMakeRotation(0.0, 0, 1, 0)
+    anim.toValue = CATransform3DMakeRotation(angle, 0, 1, 0)
+    anim.duration = 0.15
+    anim.fillMode = .forwards
+    anim.autoreverses = true
+    anim.isRemovedOnCompletion = false
+    anim.timingFunction = CAMediaTimingFunction.init(name: .easeInEaseOut)
+    layer.add(anim, forKey: "transform")
+    CATransaction.commit()
+  }
 }
 
 extension CardDeskView {
@@ -89,7 +108,7 @@ extension CardDeskView {
     return currentCardView
   }
 }
- 
+
 extension CardDeskView: CardViewDataSource {
   
   func cardViewDetailImage(_ cardView: CardView) -> UIImage {
@@ -115,6 +134,30 @@ extension CardDeskView: CardViewDataSource {
 }
 
 extension CardDeskView: CardViewDelegate {
+  func cardViewPhototMoveForward(_ cardView: CardView, currentPhotoIndex: Int, countOfPhotos: Int) {
+    var generator: UIImpactFeedbackGenerator
+    generator = UIImpactFeedbackGenerator(style: .light)
+    
+    let maxPhotoIndex = countOfPhotos - 1
+    if currentPhotoIndex == maxPhotoIndex {
+      performVibrateAnimation(tapAction: .moveForward)
+      generator = UIImpactFeedbackGenerator(style: .heavy)
+    }
+    generator.impactOccurred()
+  }
+  
+  func cardViewPhototBackLast(_ cardView: CardView, currentPhotoIndex: Int, countOfPhotos: Int) {
+    var generator: UIImpactFeedbackGenerator
+    generator = UIImpactFeedbackGenerator(style: .light)
+    
+    let minPhotoIndex = 0
+    if currentPhotoIndex == minPhotoIndex {
+      performVibrateAnimation(tapAction: .backToLast)
+      generator = UIImpactFeedbackGenerator(style: .heavy)
+    }
+    generator.impactOccurred()
+  }
+  
   
   func cardViewDidDetailButtonPress(_ cardView: CardView, cardViewModel: CardViewModel, sender: UIButton) {
     delegate?.cardDeskViewDidDetailButtonPress(self, cardViewModel: cardViewModel, sender: sender)
