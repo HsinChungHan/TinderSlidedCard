@@ -10,9 +10,9 @@ import UIKit
 
 public class CardViewModel {
   var currentPhotoIndex = 0
-  let name: String
-  let textAlignment: NSTextAlignment
-  let photos: [UIImage]
+  public private(set) var name: String
+  public private(set) var textAlignment: NSTextAlignment
+  public private(set) var photos: [UIImage]
   private(set) lazy var attributedString = translationStringToNSAttributedString(str: name)
   
   public init(name: String, textAlignment: NSTextAlignment, photos: [UIImage]) {
@@ -28,7 +28,6 @@ public class CardViewModel {
   public func getPhotoBackLastIndex(currentIndex: Int, countOfPhotos: Int) -> Int {
     return max(currentIndex - 1, 0)
   }
-  
 }
 
 extension CardViewModel {
