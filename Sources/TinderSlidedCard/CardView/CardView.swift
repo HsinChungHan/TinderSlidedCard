@@ -28,6 +28,8 @@ protocol CardViewDelegate: AnyObject {
   func cardViewDidSlide(_ cardView: CardView, cardViewModel: CardViewModel)
   func cardViewSliding(_ cardView: CardView, cardViewModel: CardViewModel, translation: CGPoint)
   func cardViewDidDetailButtonPress(_ cardView: CardView, cardViewModel: CardViewModel, sender: UIButton)
+  func cardViewPhototMoveForward(_ cardView: CardView, currentPhotoIndex: Int, countOfPhotos: Int)
+  func cardViewPhototBackLast(_ cardView: CardView, currentPhotoIndex: Int, countOfPhotos: Int)
 }
 
 public class CardView: UIView {
@@ -79,11 +81,13 @@ extension CardView: CardDelegate {
   func cardPhototMoveForward(_ card: Card, currentPhotoIndex: Int, countOfPhotos: Int) {
     cardViewModel.currentPhotoIndex = cardViewModel.getPhotoMoveForwardIndex(currentIndex: currentPhotoIndex, countOfPhotos: countOfPhotos)
     card.reloadData()
+    delegate?.cardViewPhototMoveForward(self, currentPhotoIndex: currentPhotoIndex, countOfPhotos: countOfPhotos)
   }
   
   func cardPhototBackLast(_ card: Card, currentPhotoIndex: Int, countOfPhotos: Int) {
     cardViewModel.currentPhotoIndex = cardViewModel.getPhotoBackLastIndex(currentIndex: currentPhotoIndex, countOfPhotos: countOfPhotos)
     card.reloadData()
+    delegate?.cardViewPhototBackLast(self, currentPhotoIndex: currentPhotoIndex, countOfPhotos: countOfPhotos)
   }
   
   //MARK: - Pan Gesture
@@ -181,8 +185,8 @@ extension CardView: CardDelegate {
       self.delegate?.cardViewDidSlide(self, cardViewModel: self.cardViewModel)
     }
     
-    self.layer.add(translationAnimation, forKey: "translation")
-    self.layer.add(rotationAnimation, forKey: "rotation")
+    layer.add(translationAnimation, forKey: "translation")
+    layer.add(rotationAnimation, forKey: "rotation")
     CATransaction.commit()
   }
   
