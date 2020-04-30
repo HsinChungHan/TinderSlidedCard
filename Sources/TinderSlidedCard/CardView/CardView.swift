@@ -18,6 +18,7 @@ public enum SlideAction {
 protocol CardViewDataSource: AnyObject {
   func cardViewLikeImage(_ cardView: CardView) -> UIImage
   func cardViewDislikeImage(_ cardView: CardView) -> UIImage
+  func cardViewDetailImage(_ cardView: CardView) -> UIImage
 }
 
 protocol CardViewDelegate: AnyObject {
@@ -26,6 +27,7 @@ protocol CardViewDelegate: AnyObject {
   func cardViewDidCancelSlide(_ cardView: CardView, cardViewModel: CardViewModel)
   func cardViewDidSlide(_ cardView: CardView, cardViewModel: CardViewModel)
   func cardViewSliding(_ cardView: CardView, cardViewModel: CardViewModel, translation: CGPoint)
+  func cardViewDidDetailButtonPress(_ cardView: CardView, cardViewModel: CardViewModel, sender: UIButton)
 }
 
 public class CardView: UIView {
@@ -37,6 +39,7 @@ public class CardView: UIView {
   
   fileprivate lazy var likeIconImv = makeTransparentLikeIcon()
   fileprivate lazy var dislikeIconImv = makeTransparentDislikeIcon()
+  fileprivate lazy var detailButton = makeDetailButton()
   
   init(cardViewModel: CardViewModel) {
     self.cardViewModel = cardViewModel
@@ -197,6 +200,11 @@ extension CardView: CardDelegate {
     dislikeIconImv.anchor(top: topAnchor, bottom: nil, leading: nil, trailing: trailingAnchor, padding: .init(top: 16, left: 0, bottom: 0, right: 16), size: .init(width: 150, height: 150))
   }
   
+  func setupDetailButton() {
+    addSubview(detailButton)
+    detailButton.anchor(top: nil, bottom: bottomAnchor, leading: nil, trailing: trailingAnchor, padding: .init(top: 0, left: 0, bottom: 16, right: 16), size: .init(width: 44, height: 44))
+  }
+  
   fileprivate func makeTransparentLikeIcon() -> UIImageView {
     guard let dataSource = dataSource else {
       fatalError("🚨 You have to set CardDeskView's dataSource")
@@ -215,5 +223,19 @@ extension CardView: CardDelegate {
     imv.alpha = 0.0
     imv.contentMode = .scaleAspectFill
     return imv
+  }
+  
+  fileprivate func makeDetailButton() -> UIButton {
+    guard let dataSource = dataSource else {
+      fatalError("🚨 You have to set CardDeskView's dataSource")
+    }
+    let btn = UIButton(type: .custom)
+    btn.setImage(dataSource.cardViewDetailImage(self).withRenderingMode(.alwaysOriginal) , for: .normal)
+    btn.addTarget(self, action: #selector(didDetailButtonPress(sender:)), for: .touchUpInside)
+    return btn
+  }
+  
+  @objc func didDetailButtonPress(sender: UIButton){
+    delegate?.cardViewDidDetailButtonPress(self, cardViewModel: cardViewModel, sender: sender)
   }
 }
