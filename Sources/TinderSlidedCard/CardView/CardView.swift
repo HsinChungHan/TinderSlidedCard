@@ -20,11 +20,11 @@ protocol CardViewDelegate: AnyObject {
   func cardViewDidDislikeCard(_ cardView: CardView, cardViewModel: CardViewModel)
 }
 
-class CardView: UIView {
+public class CardView: UIView {
   weak var delegate: CardViewDelegate?
   
   fileprivate var card = Card()
-  fileprivate var cardViewModel: CardViewModel
+  public private(set) var cardViewModel: CardViewModel
   
   init(cardViewModel: CardViewModel) {
     self.cardViewModel = cardViewModel
@@ -111,11 +111,9 @@ extension CardView: CardDelegate {
     if shouldDismissedCard{
       switch slideAction {
         case .like:
-        	performSwipAnimation(translation: 700, angle: 15)
-          likeCard(cardViewModel: cardViewModel)
+          likeCard()
         case .disLike:
-        	performSwipAnimation(translation: -700, angle: -15)
-          dislikeCard(cardViewModel: cardViewModel)
+          dislikeCard()
       }
     }else{
       UIView.animate(withDuration: 0.75, delay: 0, usingSpringWithDamping: 0.6, initialSpringVelocity: 0.1, options: .curveEaseOut, animations: {[unowned self] in
@@ -124,11 +122,13 @@ extension CardView: CardDelegate {
     }
   }
   
-  fileprivate func likeCard(cardViewModel: CardViewModel) {
+  func likeCard() {
+    performSwipAnimation(translation: 700, angle: 15)
     delegate?.cardViewDidLikeCard(self, cardViewModel: cardViewModel)
   }
   
-  fileprivate func dislikeCard(cardViewModel: CardViewModel) {
+  func dislikeCard() {
+    performSwipAnimation(translation: -700, angle: -15)
     delegate?.cardViewDidDislikeCard(self, cardViewModel: cardViewModel)
   }
   

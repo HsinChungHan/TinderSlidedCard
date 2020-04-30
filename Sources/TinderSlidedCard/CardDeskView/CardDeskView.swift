@@ -22,6 +22,13 @@ public class CardDeskView: UIView {
   weak public var dataSource: CardDeskViewDataSource?
   weak public var delegate: CardDeskViewDelegate?
   
+  fileprivate var cardViews = [CardView]()
+  fileprivate var currentCardView: CardView? {
+    get {
+      return cardViews.last
+    }
+  }
+  
   override public init(frame: CGRect) {
     super.init(frame: .zero)
   }
@@ -40,19 +47,35 @@ extension CardDeskView {
     
     dataSource.cardDeskViewAllCardViewModels(self).forEach {
       let cardView = CardView(cardViewModel: $0)
+      cardViews.append(cardView)
       addSubview(cardView)
       cardView.fillSuperView()
       cardView.delegate = self
     }
   }
+  
+  public func likeCurrentCard() {
+    currentCardView?.likeCard()
+  }
+  
+  public func dislikeCurrentCard() {
+    currentCardView?.dislikeCard()
+  }
+  
+  public func getCurrentCardView() -> CardView? {
+    return currentCardView
+  }
+
 }
 
 extension CardDeskView: CardViewDelegate {
   func cardViewDidLikeCard(_ cardView: CardView, cardViewModel: CardViewModel) {
+    cardViews.removeLast()
     delegate?.cardDeskViewDidLikeCard(self, cardViewModel: cardViewModel)
   }
   
   func cardViewDidDislikeCard(_ cardView: CardView, cardViewModel: CardViewModel) {
+    cardViews.removeLast()
     delegate?.cardDeskViewDidDislikeCard(self, cardViewModel: cardViewModel)
   }
 }
