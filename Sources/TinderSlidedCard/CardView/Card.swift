@@ -116,15 +116,14 @@ extension Card {
     }
   }
   
-  
   //MARK: - Layout function
   fileprivate func setupLayout() {
     layer.cornerRadius = 10.0
     clipsToBounds = true
     
-    addSubview(imageView)
-    addSubview(barStackView)
-    addSubview(informationLabel)
+    [imageView, barStackView, informationLabel].forEach {
+      addSubview($0)
+    }
     
     imageView.fillSuperView()
     barStackView.anchor(top: topAnchor, bottom: nil, leading: leadingAnchor, trailing: trailingAnchor, padding: .init(top: 8, left: 8, bottom: 0, right: 8), size: .init(width: 0, height: 4))

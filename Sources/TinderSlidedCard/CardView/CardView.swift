@@ -12,28 +12,41 @@ fileprivate let threhold: CGFloat = 120
 
 public enum SlideAction {
   case like
-  case disLike
+  case dislike
+}
+
+protocol CardViewDataSource: AnyObject {
+  func cardViewLikeImage(_ cardView: CardView) -> UIImage
+  func cardViewDislikeImage(_ cardView: CardView) -> UIImage
+  func cardViewDetailImage(_ cardView: CardView) -> UIImage
 }
 
 protocol CardViewDelegate: AnyObject {
-  func cardViewDidLikeCard(_ cardView: CardView, cardViewModel: CardViewModel)
-  func cardViewDidDislikeCard(_ cardView: CardView, cardViewModel: CardViewModel)
+  func cardViewWillLikeCard(_ cardView: CardView, cardViewModel: CardViewModel)
+  func cardViewWillDislikeCard(_ cardView: CardView, cardViewModel: CardViewModel)
+  func cardViewDidCancelSlide(_ cardView: CardView, cardViewModel: CardViewModel)
+  func cardViewDidSlide(_ cardView: CardView, cardViewModel: CardViewModel)
+  func cardViewSliding(_ cardView: CardView, cardViewModel: CardViewModel, translation: CGPoint)
+  func cardViewDidDetailButtonPress(_ cardView: CardView, cardViewModel: CardViewModel, sender: UIButton)
 }
 
 public class CardView: UIView {
+  weak var dataSource: CardViewDataSource?
   weak var delegate: CardViewDelegate?
   
   fileprivate var card = Card()
   public private(set) var cardViewModel: CardViewModel
+  
+  fileprivate lazy var likeIconImv = makeTransparentLikeIcon()
+  fileprivate lazy var dislikeIconImv = makeTransparentDislikeIcon()
+  fileprivate lazy var detailButton = makeDetailButton()
   
   init(cardViewModel: CardViewModel) {
     self.cardViewModel = cardViewModel
     super.init(frame: .zero)
     card.dataSource = self
     card.delegate = self
-    addSubview(card)
-    card.fillSuperView()
-    card.reloadData()
+    setupLayout()
     addPanGesture()
   }
   
@@ -101,35 +114,55 @@ extension CardView: CardDelegate {
     let angle: CGFloat = degrees * .pi / 180
     let rotationTransformation = CGAffineTransform.init(rotationAngle: angle)
     transform = rotationTransformation.translatedBy(x: translation.x, y: translation.y)
+    
+    let absOffset = abs(translation.x)
+    let userSlideAction: SlideAction = translation.x > 0 ? .like : .dislike
+    switch userSlideAction {
+      case .like:
+        likeIconImv.alpha = absOffset/frame.width * 3
+      case .dislike:
+        dislikeIconImv.alpha = absOffset/frame.width * 3
+    }
+    
+    delegate?.cardViewSliding(self, cardViewModel: cardViewModel, translation: translation)
   }
   
   fileprivate func handleEnded(_ gesture: UIPanGestureRecognizer) {
     var slideAction: SlideAction = .like
     let translationDirection: CGFloat = gesture.translation(in: nil).x
-    translationDirection > 0 ? (slideAction = .like) : (slideAction = .disLike)
+    translationDirection > 0 ? (slideAction = .like) : (slideAction = .dislike)
     let shouldDismissedCard = abs(gesture.translation(in: nil).x) > threhold
-    if shouldDismissedCard{
+    if shouldDismissedCard {
       switch slideAction {
         case .like:
           likeCard()
-        case .disLike:
+        case .dislike:
           dislikeCard()
       }
     }else{
-      UIView.animate(withDuration: 0.75, delay: 0, usingSpringWithDamping: 0.6, initialSpringVelocity: 0.1, options: .curveEaseOut, animations: {[unowned self] in
-        self.transform = .identity
-      })
+      cancleSlide()
     }
   }
   
   func likeCard() {
+    delegate?.cardViewWillLikeCard(self, cardViewModel: cardViewModel)
+    self.likeIconImv.alpha = 1.0
     performSwipAnimation(translation: 700, angle: 15)
-    delegate?.cardViewDidLikeCard(self, cardViewModel: cardViewModel)
   }
   
   func dislikeCard() {
+    delegate?.cardViewWillDislikeCard(self, cardViewModel: cardViewModel)
+    self.dislikeIconImv.alpha = 1.0
     performSwipAnimation(translation: -700, angle: -15)
-    delegate?.cardViewDidDislikeCard(self, cardViewModel: cardViewModel)
+  }
+  
+  func cancleSlide() {
+    UIView.animate(withDuration: 0.75, delay: 0, usingSpringWithDamping: 0.6, initialSpringVelocity: 0.1, options: .curveEaseOut, animations: {[unowned self] in
+      self.transform = .identity
+      self.likeIconImv.alpha = 0.0
+      self.dislikeIconImv.alpha = 0.0
+    })
+    delegate?.cardViewDidCancelSlide(self, cardViewModel: cardViewModel)
   }
   
   fileprivate func performSwipAnimation(translation: CGFloat, angle: CGFloat) {
@@ -145,10 +178,64 @@ extension CardView: CardDelegate {
     rotationAnimation.duration = 0.5
     CATransaction.setCompletionBlock {
       self.removeFromSuperview()
+      self.delegate?.cardViewDidSlide(self, cardViewModel: self.cardViewModel)
     }
     
     self.layer.add(translationAnimation, forKey: "translation")
     self.layer.add(rotationAnimation, forKey: "rotation")
     CATransaction.commit()
+  }
+  
+  fileprivate func setupLayout() {
+    addSubview(card)
+    card.fillSuperView()
+    card.reloadData()
+  }
+  
+  func setupLikeAndDislikeIconLayout() {
+    [likeIconImv, dislikeIconImv].forEach {
+      addSubview($0)
+    }
+    likeIconImv.anchor(top: topAnchor, bottom: nil, leading: leadingAnchor, trailing: nil, padding: .init(top: 16, left: 16, bottom: 0, right: 0), size: .init(width: 130, height: 130))
+    dislikeIconImv.anchor(top: topAnchor, bottom: nil, leading: nil, trailing: trailingAnchor, padding: .init(top: 16, left: 0, bottom: 0, right: 16), size: .init(width: 150, height: 150))
+  }
+  
+  func setupDetailButton() {
+    addSubview(detailButton)
+    detailButton.anchor(top: nil, bottom: bottomAnchor, leading: nil, trailing: trailingAnchor, padding: .init(top: 0, left: 0, bottom: 16, right: 16), size: .init(width: 44, height: 44))
+  }
+  
+  fileprivate func makeTransparentLikeIcon() -> UIImageView {
+    guard let dataSource = dataSource else {
+      fatalError("🚨 You have to set CardDeskView's dataSource")
+    }
+    let imv = UIImageView(image: dataSource.cardViewLikeImage(self))
+    imv.alpha = 0.0
+    imv.contentMode = .scaleAspectFill
+    return imv
+  }
+  
+  fileprivate func makeTransparentDislikeIcon() -> UIImageView {
+    guard let dataSource = dataSource else {
+      fatalError("🚨 You have to set CardDeskView's dataSource")
+    }
+    let imv = UIImageView(image: dataSource.cardViewDislikeImage(self))
+    imv.alpha = 0.0
+    imv.contentMode = .scaleAspectFill
+    return imv
+  }
+  
+  fileprivate func makeDetailButton() -> UIButton {
+    guard let dataSource = dataSource else {
+      fatalError("🚨 You have to set CardDeskView's dataSource")
+    }
+    let btn = UIButton(type: .custom)
+    btn.setImage(dataSource.cardViewDetailImage(self).withRenderingMode(.alwaysOriginal) , for: .normal)
+    btn.addTarget(self, action: #selector(didDetailButtonPress(sender:)), for: .touchUpInside)
+    return btn
+  }
+  
+  @objc func didDetailButtonPress(sender: UIButton){
+    delegate?.cardViewDidDetailButtonPress(self, cardViewModel: cardViewModel, sender: sender)
   }
 }
