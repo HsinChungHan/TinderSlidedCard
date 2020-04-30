@@ -12,6 +12,7 @@ public protocol CardDeskViewDataSource: AnyObject {
   func cardDeskViewAllCardViewModels(_ cardDeskView: CardDeskView) -> [CardViewModel]
   func cardDeskViewLikeIcon(_ cardDeskView: CardDeskView) -> UIImage
   func cardDeskViewDislikeIcon(_ cardDeskView: CardDeskView) -> UIImage
+  func cardDeskViewDetailIcon(_ cardDeskView: CardDeskView) -> UIImage
 }
 
 public protocol CardDeskViewDelegate: AnyObject {
@@ -21,6 +22,7 @@ public protocol CardDeskViewDelegate: AnyObject {
   func cardDeskViewDidSlide(_ cardDeskView: CardDeskView, cardViewModel: CardViewModel)
   func cardDeskViewDidCancelSlide(_ cardDeskView: CardDeskView, cardViewModel: CardViewModel)
   func cardDeskViewSliding(_ cardDeskView: CardDeskView, cardViewModel: CardViewModel, translation: CGPoint)
+  func cardDeskViewDidDetailButtonPress(_ cardDeskView: CardDeskView, cardViewModel: CardViewModel, sender: UIButton)
 }
 
 public class CardDeskView: UIView {
@@ -49,6 +51,7 @@ extension CardDeskView {
       addSubview($0)
       $0.fillSuperView()
       $0.setupLikeAndDislikeIconLayout()
+      $0.setupDetailButton()
     }
   }
 }
@@ -89,6 +92,13 @@ extension CardDeskView {
  
 extension CardDeskView: CardViewDataSource {
   
+  func cardViewDetailImage(_ cardView: CardView) -> UIImage {
+    guard let dataSource = dataSource else {
+      fatalError("🚨 You have to set CardDeskView's dataSource")
+    }
+    return dataSource.cardDeskViewDetailIcon(self)
+  }
+  
   func cardViewLikeImage(_ cardView: CardView) -> UIImage {
     guard let dataSource = dataSource else {
       fatalError("🚨 You have to set CardDeskView's dataSource")
@@ -105,6 +115,11 @@ extension CardDeskView: CardViewDataSource {
 }
 
 extension CardDeskView: CardViewDelegate {
+  
+  func cardViewDidDetailButtonPress(_ cardView: CardView, cardViewModel: CardViewModel, sender: UIButton) {
+    delegate?.cardDeskViewDidDetailButtonPress(self, cardViewModel: cardViewModel, sender: sender)
+  }
+  
   func cardViewDidSlide(_ cardView: CardView, cardViewModel: CardViewModel) {
     delegate?.cardDeskViewDidSlide(self, cardViewModel: cardViewModel)
   }
