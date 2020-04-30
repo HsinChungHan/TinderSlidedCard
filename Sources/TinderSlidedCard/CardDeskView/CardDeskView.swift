@@ -14,8 +14,8 @@ public protocol CardDeskViewDataSource: AnyObject {
 
 public protocol CardDeskViewDelegate: AnyObject {
   func cardDeskViewDidLikeCard(_ cardDeskView: CardDeskView, cardViewModel: CardViewModel)
-  
   func cardDeskViewDidDislikeCard(_ cardDeskView: CardDeskView, cardViewModel: CardViewModel)
+  func cardDeskViewDidRefreshAllCards(_ cardDeskView: CardDeskView, cardViewModels: [CardViewModel])
 }
 
 public class CardDeskView: UIView {
@@ -46,12 +46,16 @@ extension CardDeskView {
     }
     removeAllSubViewsFromSuperView()
     cardViews.removeAll()
-    dataSource.cardDeskViewAllCardViewModels(self).forEach {
+    
+    let cardViewModels = dataSource.cardDeskViewAllCardViewModels(self)
+    
+    cardViewModels.forEach {
       let cardView = CardView(cardViewModel: $0)
       cardViews.append(cardView)
       cardView.delegate = self
     }
     setupCardViewsLayout()
+    delegate?.cardDeskViewDidRefreshAllCards(self, cardViewModels: cardViewModels)
   }
   
   fileprivate func setupCardViewsLayout() {
